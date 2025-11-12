@@ -29,15 +29,29 @@ jobs:
         run: |
           if [ "${{ github.event.inputs.suite }}" = "both" ]; then
             echo "Running both UI and API test suites..."
-            npx playwright test --project=ui
-            npx playwright test --project=api
+            npx playwright test --project=ui --reporter=html:playwright-report-ui
+            npx playwright test --project=api --reporter=html:playwright-report-api
           else
             echo "Running ${{ github.event.inputs.suite }} test suite..."
             npx playwright test --project=${{ github.event.inputs.suite }}
           fi
 
-      - name: Upload Playwright report
+      - name: Upload UI Playwright report
         if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-ui
+          path: playwright-report-ui
+
+      - name: Upload API Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-api
+          path: playwright-report-api
+
+      - name: Upload Playwright report (single suite)
+        if: always() && github.event.inputs.suite != 'both'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
