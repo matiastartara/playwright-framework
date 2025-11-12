@@ -27,14 +27,43 @@ jobs:
 
       - name: Run selected test suite
         run: |
+          # Disable errexit so we can move reports even if tests fail, but
+          # preserve exit code and fail the step at the end if needed.
+          set +e
+          exit_code=0
           if [ "${{ github.event.inputs.suite }}" = "both" ]; then
             echo "Running both UI and API test suites..."
-            npx playwright test --project=ui --reporter=html:playwright-report-ui
-            npx playwright test --project=api --reporter=html:playwright-report-api
+            # Run UI tests and keep report in a unique folder
+            npx playwright test --project=ui --reporter=html
+            ec=$?
+            if [ $ec -ne 0 ]; then exit_code=$ec; fi
+            if [ -d "playwright-report" ]; then
+              rm -rf playwright-report-ui || true
+              mv playwright-report playwright-report-ui
+            fi
+
+            # Run API tests and keep report in a unique folder
+            npx playwright test --project=api --reporter=html
+            ec=$?
+            if [ $ec -ne 0 ]; then exit_code=$ec; fi
+            if [ -d "playwright-report" ]; then
+              rm -rf playwright-report-api || true
+              mv playwright-report playwright-report-api
+            fi
           else
             echo "Running ${{ github.event.inputs.suite }} test suite..."
-            npx playwright test --project=${{ github.event.inputs.suite }}
+            npx playwright test --project=${{ github.event.inputs.suite }} --reporter=html
+            exit_code=$?
+            if [ -d "playwright-report" ]; then
+              # keep default single-suite report folder
+              rm -rf playwright-report || true
+              mv playwright-report playwright-report || true
+            fi
           fi
+
+          # Re-enable errexit and exit with captured code (0 if all passed)
+          set -e
+          exit $exit_code
 
       - name: Upload UI Playwright report
         if: always()
