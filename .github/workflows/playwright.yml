@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       suite:
-        description: "Select which test suite to run (ui, api, or both)"
+        description: "Select which test suite to run (ui or api)"
         required: true
         default: "ui"
 
@@ -27,61 +27,22 @@ jobs:
 
       - name: Run selected test suite
         run: |
-          # Disable errexit so we can move reports even if tests fail, but
-          # preserve exit code and fail the step at the end if needed.
+          # Run only the selected suite (ui or api), capture exit code and
+          # move the generated playwright-report to a suite-specific folder.
           set +e
-          exit_code=0
-          if [ "${{ github.event.inputs.suite }}" = "both" ]; then
-            echo "Running both UI and API test suites..."
-            # Run UI tests and keep report in a unique folder
-            npx playwright test --project=ui --reporter=html
-            ec=$?
-            if [ $ec -ne 0 ]; then exit_code=$ec; fi
-            if [ -d "playwright-report" ]; then
-              rm -rf playwright-report-ui || true
-              mv playwright-report playwright-report-ui
-            fi
-
-            # Run API tests and keep report in a unique folder
-            npx playwright test --project=api --reporter=html
-            ec=$?
-            if [ $ec -ne 0 ]; then exit_code=$ec; fi
-            if [ -d "playwright-report" ]; then
-              rm -rf playwright-report-api || true
-              mv playwright-report playwright-report-api
-            fi
-          else
-            echo "Running ${{ github.event.inputs.suite }} test suite..."
-            npx playwright test --project=${{ github.event.inputs.suite }} --reporter=html
-            exit_code=$?
-            if [ -d "playwright-report" ]; then
-              # keep default single-suite report folder
-              rm -rf playwright-report || true
-              mv playwright-report playwright-report || true
-            fi
+          SUITE="${{ github.event.inputs.suite }}"
+          npx playwright test --project=$SUITE --reporter=html
+          ec=$?
+          if [ -d "playwright-report" ]; then
+            rm -rf "playwright-report-$SUITE" || true
+            mv playwright-report "playwright-report-$SUITE"
           fi
-
-          # Re-enable errexit and exit with captured code (0 if all passed)
           set -e
-          exit $exit_code
+          exit $ec
 
-      - name: Upload UI Playwright report
+      - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-ui
-          path: playwright-report-ui
-
-      - name: Upload API Playwright report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report-api
-          path: playwright-report-api
-
-      - name: Upload Playwright report (single suite)
-        if: always() && github.event.inputs.suite != 'both'
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report
+          name: playwright-report-${{ github.event.inputs.suite }}
+          path: playwright-report-${{ github.event.inputs.suite }}
