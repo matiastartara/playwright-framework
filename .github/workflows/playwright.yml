@@ -27,16 +27,14 @@ jobs:
 
       - name: Run selected test suite
         run: |
-          # Run only the selected suite (ui or api), capture exit code and
-          # move the generated playwright-report to a suite-specific folder.
+          # Run only the selected suite (ui or api), capture exit code.
+          # We don't need to move the generated report folder because
+          # this workflow runs a single suite per job; the artifact name
+          # will include the suite name when uploading.
           set +e
           SUITE="${{ github.event.inputs.suite }}"
           npx playwright test --project=$SUITE --reporter=html
           ec=$?
-          if [ -d "playwright-report" ]; then
-            rm -rf "playwright-report-$SUITE" || true
-            mv playwright-report "playwright-report-$SUITE"
-          fi
           set -e
           exit $ec
 
@@ -45,4 +43,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report-${{ github.event.inputs.suite }}
-          path: playwright-report-${{ github.event.inputs.suite }}
+          path: playwright-report
