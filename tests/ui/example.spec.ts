@@ -1,7 +1,12 @@
-import { test, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from '../../fixtures/auth-setup';
 
-test('has title', async ({ page }) => {
-  await page.goto('https://opensource-demo.orangehrmlive.com/');
-  await expect(page).toHaveTitle(/OrangeHRM/);
-  await page.close();
+
+test('Login test', async ({ userLoggedInPage }) => {
+
+  await expect(userLoggedInPage).toHaveTitle(/OrangeHRM/);
+
+  //TODO await userLoggedInPage.click('selector-after-login');
+  //TODO await userLoggedInPage.close();
+
 });

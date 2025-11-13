@@ -27,10 +27,7 @@ jobs:
 
       - name: Run selected test suite
         run: |
-          # Run only the selected suite (ui or api), capture exit code.
-          # We don't need to move the generated report folder because
-          # this workflow runs a single suite per job; the artifact name
-          # will include the suite name when uploading.
+          # Run only the selected suite (ui or api), capture exit code..
           set +e
           SUITE="${{ github.event.inputs.suite }}"
           npx playwright test --project=$SUITE --reporter=html
